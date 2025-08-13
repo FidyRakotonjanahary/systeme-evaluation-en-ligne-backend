@@ -9,7 +9,7 @@ class AuthController {
     return jwt.sign(
       { id: userId },
       config.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '5h' }
     );
   }
 
@@ -66,6 +66,71 @@ class AuthController {
     } catch (error) {
       console.error('Get profile error:', error);
       res.status(500).json({ message: 'Server error fetching profile' });
+    }
+  }
+
+  static async updateName(req, res) {
+    try {
+      const { name } = req.body;
+      
+      if (!name || name.trim().length === 0) {
+        return res.status(400).json({ message: 'Le nom est requis' });
+      }
+
+      const updated = await User.update(req.user.id, { name });
+      
+      if (!updated) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
+
+      const user = await User.findById(req.user.id);
+      res.json(user);
+    } catch (error) {
+      console.error('Update name error:', error);
+      res.status(500).json({ message: 'Erreur lors de la mise à jour du nom' });
+    }
+  }
+
+  static async updateEmail(req, res) {
+    try {
+      const { email } = req.body;
+
+      if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        return res.status(400).json({ message: 'Email invalide' });
+      }
+
+      // Vérifier si l'email est déjà utilisé
+      const existingUser = await User.findByEmail(email);
+      if (existingUser && existingUser.id !== req.user.id) {
+        return res.status(400).json({ message: 'Cette adresse email est déjà utilisée' });
+      }
+
+      const updated = await User.update(req.user.id, { email });
+      
+      if (!updated) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
+
+      const user = await User.findById(req.user.id);
+      res.json(user);
+    } catch (error) {
+      console.error('Update email error:', error);
+      res.status(500).json({ message: 'Erreur lors de la mise à jour de l\'email' });
+    }
+  }
+
+  static async deleteAccount(req, res) {
+    try {
+      const deleted = await User.delete(req.user.id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
+
+      res.json({ message: 'Compte supprimé avec succès' });
+    } catch (error) {
+      console.error('Delete account error:', error);
+      res.status(500).json({ message: 'Erreur lors de la suppression du compte' });
     }
   }
 }
